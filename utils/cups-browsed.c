@@ -5941,6 +5941,7 @@ on_job_state (CupsNotifier *object,
 	    /* Check whether the printer is idle, processing, or disabled */
 	    httpSetTimeout(http, HttpRemoteTimeout, http_timeout_cb, NULL);
 	    request = ippNewRequest(IPP_OP_GET_PRINTER_ATTRIBUTES);
+      ippSetVersion(request,1,1);
 	    ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "printer-uri",
 			 NULL,p->uri);
 	    ippAddStrings(request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
@@ -6628,6 +6629,7 @@ get_printer_attributes(const char* uri)
     return NULL;
   }
   request = ippNewRequest(IPP_OP_GET_PRINTER_ATTRIBUTES);
+  ippSetVersion(request,1,1);
   ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "printer-uri", NULL, uri);
   ippAddStrings(request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
 		"requested-attributes", sizeof(pattrs) / sizeof(pattrs[0]),
