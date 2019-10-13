@@ -5771,6 +5771,7 @@ get_printer_attributes(const char* uri, int fallback_request,
   ipp_attribute_t *attr;
   char valuebuffer[65536];
   const char *kw;
+  ipp_status_t  ipp_status;   /* Status of IPP request */
 
   /* Request printer properties via IPP to generate a PPD file for the
      printer (mainly driverless-capable printers)
@@ -5784,6 +5785,7 @@ get_printer_attributes(const char* uri, int fallback_request,
              resource, sizeof(resource));
   if (uri_status != HTTP_URI_OK)
     return NULL;
+
   if ((http_printer =
        httpConnectEncryptShortTimeout (host_name, host_port,
                HTTP_ENCRYPT_IF_REQUESTED)) == NULL) {
@@ -5795,16 +5797,28 @@ get_printer_attributes(const char* uri, int fallback_request,
   if(fallback_request)
     ippSetVersion(request,1,1);
   ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "printer-uri", NULL, uri);
+    const char * const pattr[] =
+  {
+    "all",
+  };
   ippAddStrings(request, IPP_TAG_OPERATION, IPP_TAG_KEYWORD,
-    "requested-attributes", attr_size,
-    NULL, pattrs);
+    "requested-attributes", 1,
+    NULL, pattr);
 
   response = cupsDoRequest(http_printer, request, resource);
+  ipp_status = cupsLastError();
+  debug_printf(" ipp-status %s\n",ipp_status);
+  if(ipp_status == IPP_STATUS_ERROR_BAD_REQUEST ||
+          ipp_status == IPP_STATUS_ERROR_VERSION_NOT_SUPPORTED){
+      debug_printf("The server doesn't support IPP2.0 request, trying to IPP1.1 request\n");
+      httpClose(http_printer);
+      return get_printer_attributes(uri,1,pattrs,job_state_attributes, attr_size);
+  }
 
   if (response) {
     /* Log all printer attributes for debugging */
     if (debug_stderr || debug_logfile) {
-      if(!job_state_attributes)
+      if(1)
         debug_printf("Full list of IPP attributes (get-printer-attributes) for printer with URI %s:\n",
        uri);
       attr = ippFirstAttribute(response);
